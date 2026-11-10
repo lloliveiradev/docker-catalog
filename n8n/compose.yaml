@@ -1,0 +1,31 @@
+name: n8n
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:1.70.3
+    restart: unless-stopped
+    environment:
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-UTC}
+      TZ: ${GENERIC_TIMEZONE:-UTC}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RUNNERS_ENABLED: "true"
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+
+  # Optional. Requires a kubeconfig directory and opens an unauthenticated HTTP transport.
+  k8s-mcp:
+    image: mcp/kubernetes:latest
+    profiles: ["mcp"]
+    environment:
+      ENABLE_UNSAFE_STREAMABLE_HTTP_TRANSPORT: "1"
+      PORT: 3001
+      HOST: 0.0.0.0
+    volumes:
+      - ${KUBECONFIG_DIR:-./kube}:/home/appuser/.kube:ro
+    depends_on:
+      - n8n
+
+volumes:
+  n8n-data:

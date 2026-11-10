@@ -1,0 +1,70 @@
+name: kafka
+
+services:
+  kafka:
+    image: apache/kafka:3.9.0
+    restart: unless-stopped
+    ports:
+      # Host clients use localhost:${KAFKA_PORT}. In-network clients use kafka:9092.
+      - "${KAFKA_PORT:-9092}:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:${KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_LOG_RETENTION_HOURS: 24
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+
+  karapace:
+    image: ghcr.io/aiven-open/karapace:6.1.4
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${KARAPACE_PORT:-8081}:8081"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat > /opt/karapace/registry.config.json <<EOF
+        {
+          "bootstrap_uri": "kafka:9092",
+          "host": "0.0.0.0",
+          "port": 8081,
+          "advertised_hostname": "karapace",
+          "compatibility": "BACKWARD",
+          "client_id": "karapace",
+          "group_id": "karapace-registry",
+          "master_eligibility": true,
+          "topic_name": "_schemas",
+          "log_level": "WARNING"
+        }
+        EOF
+        exec python3 -m karapace /opt/karapace/registry.config.json
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8081/_health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  kafka-data:

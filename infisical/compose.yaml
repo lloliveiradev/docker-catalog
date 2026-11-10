@@ -1,0 +1,47 @@
+name: infisical
+
+services:
+  infisical-db:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: infisical
+      POSTGRES_PASSWORD: ${INFISICAL_POSTGRES_PASSWORD:-infisical}
+      POSTGRES_DB: infisical
+    volumes:
+      - infisical-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infisical -d infisical"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  infisical-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  infisical:
+    image: infisical/infisical:latest
+    restart: unless-stopped
+    depends_on:
+      infisical-db:
+        condition: service_healthy
+      infisical-redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY:-f13dbc92aaaf86fa7cb0ed8ac3265f47}
+      AUTH_SECRET: ${INFISICAL_AUTH_SECRET:-5lrMXKKWCVocS/uerPsl7V+TX/aaUaI7iDkgl3tSmLE=}
+      DB_CONNECTION_URI: postgres://infisical:${INFISICAL_POSTGRES_PASSWORD:-infisical}@infisical-db:5432/infisical
+      REDIS_URL: redis://infisical-redis:6379
+      SITE_URL: http://localhost:${INFISICAL_PORT:-8080}
+    ports:
+      - "${INFISICAL_PORT:-8080}:8080"
+
+volumes:
+  infisical-pg-data:

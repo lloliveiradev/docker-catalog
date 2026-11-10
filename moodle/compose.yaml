@@ -1,0 +1,45 @@
+name: moodle
+
+services:
+  mariadb:
+    image: bitnamilegacy/mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_USER: bn_moodle
+      MARIADB_DATABASE: bitnami_moodle
+      MARIADB_PASSWORD: ${MOODLE_DATABASE_PASSWORD:-moodle}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-moodle}
+      MARIADB_CHARACTER_SET: utf8mb4
+      MARIADB_COLLATE: utf8mb4_unicode_ci
+    volumes:
+      - mariadb-data:/bitnami/mariadb
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  moodle:
+    image: bitnamilegacy/moodle:4.5
+    restart: unless-stopped
+    environment:
+      MOODLE_DATABASE_HOST: mariadb
+      MOODLE_DATABASE_PORT_NUMBER: 3306
+      MOODLE_DATABASE_USER: bn_moodle
+      MOODLE_DATABASE_NAME: bitnami_moodle
+      MOODLE_DATABASE_PASSWORD: ${MOODLE_DATABASE_PASSWORD:-moodle}
+    ports:
+      - "${MOODLE_HTTP_PORT:-8080}:8080"
+      - "${MOODLE_HTTPS_PORT:-8443}:8443"
+    volumes:
+      - moodle-data:/bitnami/moodle
+      - moodledata-data:/bitnami/moodledata
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+volumes:
+  mariadb-data:
+  moodle-data:
+  moodledata-data:

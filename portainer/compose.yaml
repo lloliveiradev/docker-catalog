@@ -1,0 +1,16 @@
+name: portainer
+
+services:
+  portainer:
+    image: portainer/portainer-ce:2.21.5
+    restart: unless-stopped
+    command: -H unix:///var/run/docker.sock
+    ports:
+      - "${PORTAINER_HTTP_PORT:-9000}:9000"
+      - "${PORTAINER_HTTPS_PORT:-9443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+
+volumes:
+  portainer-data:

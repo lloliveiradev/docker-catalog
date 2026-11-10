@@ -1,0 +1,11 @@
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+.DS_Store
+data/
+
+# Local kubeconfig for the n8n mcp profile.
+**/kube/*
+!**/kube/.gitkeep

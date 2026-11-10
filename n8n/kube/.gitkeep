@@ -1,0 +1,2 @@
+# Drop a kubeconfig in this directory before `docker compose --profile mcp up`.
+# The directory is gitignored except for this file.

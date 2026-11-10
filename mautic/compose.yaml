@@ -1,0 +1,40 @@
+name: mautic
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MAUTIC_DB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: mautic
+      MARIADB_USER: mautic
+      MARIADB_PASSWORD: ${MAUTIC_DB_PASSWORD:-mautic}
+    volumes:
+      - mautic-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  mautic:
+    image: mautic/mautic:5-apache
+    restart: unless-stopped
+    environment:
+      MAUTIC_DB_HOST: db
+      MAUTIC_DB_PORT: 3306
+      MAUTIC_DB_USER: mautic
+      MAUTIC_DB_PASSWORD: ${MAUTIC_DB_PASSWORD:-mautic}
+      MAUTIC_DB_NAME: mautic
+    ports:
+      - "${MAUTIC_PORT:-8080}:80"
+    volumes:
+      - mautic-data:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mautic-db-data:
+  mautic-data:
