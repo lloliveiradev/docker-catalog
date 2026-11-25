@@ -4,16 +4,42 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    # An empty password leaves authentication off.
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # redis-cli can exit 0 on an error reply, so check for the answer itself. REDISCLI_AUTH is
+      # exported only when there is a password: an empty one makes redis-cli report a failed AUTH.
+      test: ["CMD-SHELL", 'if [ -n "$$REDIS_PASSWORD" ]; then export REDISCLI_AUTH="$$REDIS_PASSWORD"; fi; redis-cli ping | grep -q PONG']
       interval: 5s
       timeout: 3s
       retries: 12
 
+  redis-ui:
+    image: redis/redisinsight:3.10
+    profiles: ["admin"]
+    restart: unless-stopped
+    environment:
+      RI_REDIS_HOST: redis
+      # The container port. REDIS_PORT only changes the port published on the host.
+      RI_REDIS_PORT: "6379"
+      RI_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      RI_REDIS_DB: ${REDIS_DB:-0}
+      # Redis Insight registers the connection above only after its terms are accepted.
+      RI_ACCEPT_TERMS_AND_CONDITIONS: ${REDIS_UI_ACCEPT_TERMS:-false}
+    ports:
+      - "${REDIS_UI_PORT:-5540}:5540"
+    volumes:
+      - redisinsight-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   redis-data:
+  redisinsight-data:
