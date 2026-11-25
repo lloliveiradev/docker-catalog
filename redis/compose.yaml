@@ -15,5 +15,18 @@ services:
       timeout: 3s
       retries: 12
 
+  redis-ui:
+    image: redis/redisinsight:latest
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+    ports:
+      - "${REDIS_UI_PORT:-5540}:5540"
+    depends_on:
+      - redis
+
 volumes:
   redis-data:

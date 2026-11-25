@@ -68,7 +68,7 @@ bash scripts/validate.sh
 | [`postgresql/pgvector`](postgresql/pgvector) | Postgres 19, pgvector | `localhost:5432` | Same login, `uuidv7()`, and `admin` profile. Creates `vector` in `POSTGRES_DB` |
 | [`postgresql/postgis`](postgresql/postgis) | Postgres 19, PostGIS 3 | `localhost:5432` | Same login, `uuidv7()`, and `admin` profile. Creates `postgis` in `POSTGRES_DB`. Builds a local image |
 | [`rabbitmq`](rabbitmq) | RabbitMQ, management, STOMP | [localhost:15672](http://localhost:15672) | `rabbit` / `rabbit`. AMQP `5672`, STOMP `61613` |
-| [`redis`](redis) | Redis 7 | `localhost:6379` | No authentication. AOF enabled |
+| [`redis`](redis) | Redis 7, RedisInsight | `localhost:6379` | No authentication. AOF enabled. RedisInsight starts with the stack on [localhost:5540](http://localhost:5540); add the database there with host `redis`, port `6379` |
 | [`sonarqube`](sonarqube) | SonarQube, Postgres | [localhost:9000](http://localhost:9000) | First login `admin` / `admin`, then SonarQube asks for a new password |
 | [`sqlserver`](sqlserver) | SQL Server 2022 Developer | `localhost:1433` | `sa` / `SqlServer@123` |
 | [`temporal`](temporal) | Temporal, UI, Postgres | [localhost:8080](http://localhost:8080) | Frontend on `7233`. Database `temporal` / `temporal` |
