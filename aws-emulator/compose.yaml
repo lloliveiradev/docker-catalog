@@ -1,0 +1,32 @@
+name: aws-emulator
+
+services:
+  aws-emulator:
+    build: .
+    restart: unless-stopped
+    # The emulator writes its port into its files and URLs: keep it the same inside and outside.
+    command: ["-p", "${EMULATOR_PORT:-9297}"]
+    user: "${EMULATOR_USER:-1000}"
+    environment:
+      # Same path inside and outside, so the generated config works on the host.
+      HOME: "${EMULATOR_HOME:-${HOME}}"
+      EMULATOR_TELEMETRY: ${EMULATOR_TELEMETRY:-off}
+      # Resources with an endpoint of their own, such as RDS instances, open ports in this range.
+      EMULATOR_LISTENER_PORT_RANGE: ${EMULATOR_ENDPOINT_PORTS:-9298-9317}
+    ports:
+      # Loopback only. Resource endpoints check no request signature.
+      - "127.0.0.1:${EMULATOR_PORT:-9297}:${EMULATOR_PORT:-9297}"
+      - "127.0.0.1:${EMULATOR_ENDPOINT_PORTS:-9298-9317}:${EMULATOR_ENDPOINT_PORTS:-9298-9317}"
+    volumes:
+      - "${EMULATOR_HOME:-${HOME}}/.aws/emulator:${EMULATOR_HOME:-${HOME}}/.aws/emulator"
+    mem_limit: ${EMULATOR_MEMORY:-2g}
+    memswap_limit: ${EMULATOR_MEMORY:-2g}
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", 'curl -sf --cacert "$$HOME/.aws/emulator/${EMULATOR_PORT:-9297}/ca.pem" https://127.0.0.1:${EMULATOR_PORT:-9297}/__admin/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
