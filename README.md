@@ -86,13 +86,17 @@ docker compose up -d --wait
 ( . ./env.sh && aws s3 mb s3://demo && aws s3 ls )
 ```
 
-`env.sh` (bash or zsh) points the AWS CLI and SDKs at the emulator and removes real credentials and endpoint overrides from that shell. Start your application the same way, for example `( . /path/to/aws-emulator/env.sh && npm run dev )`. Without it, your code talks to real AWS. Code that sets its own endpoint or credentials overrides these variables. SDKs that do not read `AWS_ENDPOINT_URL`, such as Java 1.x, Go v1, JavaScript v2, and old releases of the current ones, cannot use the emulator this way: they call real AWS, which rejects the emulator keys.
+If you set `EMULATOR_HOME`, create `.aws/emulator` under that directory instead.
+
+`env.sh` (bash or zsh) points the AWS CLI and SDKs at the emulator, keeps `127.0.0.1` and `localhost` out of any proxy, and removes real credentials and endpoint overrides from that shell. With a `.env` file, it reads the port and directory through `docker compose config --environment`, which needs Compose 2.27.2 or newer. Start your application the same way, for example `( . /path/to/aws-emulator/env.sh && npm run dev )`. Without it, your code talks to real AWS. Code that sets its own endpoint or credentials overrides these variables. SDKs that do not read `AWS_ENDPOINT_URL`, such as Java 1.x, Go v1, JavaScript v2, and old releases of the current ones, cannot use the emulator this way: they call real AWS, which rejects the emulator keys.
 
 | Client | Certificate |
 | --- | --- |
-| AWS CLI, Python (boto3), Node.js | Set by `env.sh` |
+| AWS CLI, Python (boto3), Go, Node.js | Set by `env.sh` |
 | Rust, .NET | Add `SSL_CERT_FILE="$AWS_CA_BUNDLE"` to the command |
-| Go, Java | See [Pointing your AWS SDK at AWS Emulator](https://docs.aws.amazon.com/emulator/latest/userguide/point-sdk-to-emulator.html) |
+| Java 2.x | Point `JAVA_TOOL_OPTIONS` at the `truststore.p12` next to `ca.pem`; see [Pointing your AWS SDK at AWS Emulator](https://docs.aws.amazon.com/emulator/latest/userguide/point-sdk-to-emulator.html) |
+
+Keep `127.0.0.1` in the endpoint: with `localhost`, some SDKs put the bucket name in the host name, which the emulator rejects.
 
 Telemetry is off in this stack; the product's own default is on. Linux users with a uid other than `1000` set `EMULATOR_USER` in `.env`.
 
@@ -102,7 +106,7 @@ Limits, as seen on release 1.0.611:
 - The RDS endpoint is not a real PostgreSQL: `generate_series`, `CREATE TYPE`, PL/pgSQL functions, and pgvector operators fail. Use the `postgresql` stacks for database work.
 - Lambda runs on built-in runtimes. The Python one has no `ctypes`, so expect native libraries not to load.
 - IAM permissions are not enforced. Do not test policies against it.
-- Applications in other containers cannot connect: ports are published on loopback and the certificate covers only `localhost` and `127.0.0.1`.
+- Applications in other containers cannot connect: ports are published on loopback and the certificate covers only `localhost`, `127.0.0.1`, and `::1`.
 - A browser uploading through a presigned URL has to trust `~/.aws/emulator/9297/ca.pem`, which changes on every start.
 
 ## Conventions
