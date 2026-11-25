@@ -68,7 +68,7 @@ bash scripts/validate.sh
 | [`postgresql/pgvector`](postgresql/pgvector) | Postgres 19, pgvector | `localhost:5432` | Same login, `uuidv7()`, and `admin` profile. Creates `vector` in `POSTGRES_DB` |
 | [`postgresql/postgis`](postgresql/postgis) | Postgres 19, PostGIS 3 | `localhost:5432` | Same login, `uuidv7()`, and `admin` profile. Creates `postgis` in `POSTGRES_DB`. Builds a local image |
 | [`rabbitmq`](rabbitmq) | RabbitMQ, management, STOMP | [localhost:15672](http://localhost:15672) | `rabbit` / `rabbit`. AMQP `5672`, STOMP `61613` |
-| [`redis`](redis) | Redis 7, RedisInsight | `localhost:6379` | No authentication. AOF enabled. RedisInsight starts with the stack on [localhost:5540](http://localhost:5540); add the database there with host `redis`, port `6379` |
+| [`redis`](redis) | Redis 7 | `localhost:6379` | No password unless `REDIS_PASSWORD` is set. AOF enabled. `--profile admin` adds Redis Insight on [localhost:5540](http://localhost:5540) |
 | [`sonarqube`](sonarqube) | SonarQube, Postgres | [localhost:9000](http://localhost:9000) | First login `admin` / `admin`, then SonarQube asks for a new password |
 | [`sqlserver`](sqlserver) | SQL Server 2022 Developer | `localhost:1433` | `sa` / `SqlServer@123` |
 | [`temporal`](temporal) | Temporal, UI, Postgres | [localhost:8080](http://localhost:8080) | Frontend on `7233`. Database `temporal` / `temporal` |
@@ -106,6 +106,10 @@ docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres' < ~
 ```
 
 During the import, errors saying that your user's role and database already exist are expected.
+
+**Redis Insight opens without a database.** It registers the Redis connection only after its terms are accepted. To accept them from the stack, set `REDIS_UI_ACCEPT_TERMS=true` in `redis/.env` and run `docker compose --profile admin up -d`. Otherwise accept them on screen and add the database with host `redis`, port `6379`, and your password if you set one.
+
+**`redis-cli` answers `NOAUTH`.** `REDIS_PASSWORD` is set. Run `docker compose exec redis redis-cli --askpass`.
 
 **Kafka client from the host gets the wrong broker address.** Connect to `localhost:9092`. Containers on the Compose network connect to `kafka:9092`.
 
